@@ -3,3 +3,8 @@ work/
 transcript
 *.wlf
 *.log
+.claude/
+*.md
+!README.md
+*.docx
+*.py

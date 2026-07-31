@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(python generate_report.py; if \\($?\\) { python \"C:\\\\Users\\\\SANJAY\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--Desktop-Accelarator\\\\37a288ae-71b9-48f5-a830-2c1df72e9f33\\\\scratchpad\\\\check_docx.py\"; \\(Get-Item Systolic_Array_Project_Report.docx\\) | Select-Object Name, @{n='KB';e={[math]::Round\\($_.Length/1KB,1\\)}}, LastWriteTime })",
-      "PowerShell(python generate_pe_module_report.py; if \\($?\\) { powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\SANJAY\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--Desktop-Accelarator\\\\37a288ae-71b9-48f5-a830-2c1df72e9f33\\\\scratchpad\\\\pagecount.ps1\" })"
-    ]
-  }
-}
