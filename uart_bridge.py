@@ -26,7 +26,7 @@ CMD_START         = 0x05
 CMD_READ_OUTPUT   = 0x06
 ACK_DONE          = 0xAA
 
-BAUD_DEFAULT = 115200
+BAUD_DEFAULT = 921600
 N = 4  # array width / pixels per batch
 
 RED_WEIGHTS   = [[1,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
