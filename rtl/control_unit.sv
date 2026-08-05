@@ -20,6 +20,13 @@
 //     single-cycle pulse.
 //   * Reset returns the FSM to IDLE with done=0, wload=0, phase=PH_IDLE, from
 //     whatever state it was in.
+//   * With `skip_load = 0` on every `start` -- as in every pre-existing test --
+//     behavior is IDENTICAL to the pre-weight-reuse verified module.
+//   * With `skip_load = 1`, `phase` goes PH_IDLE -> PH_COMPUTE with no PH_LOAD
+//     cycle at all; `wload` never asserts for that run; and `addr_done` for the
+//     skipped LOAD phase is never checked or waited on.
+//   * `skip_load` is sampled only at the `start` edge -- changing it mid-run has
+//     no effect until the next `start`.
 //
 // -----------------------------------------------------------------------------
 // THE ONE-CYCLE OFFSET CONTRACT -- the most important detail in this module
@@ -45,6 +52,40 @@
 //
 // The trailing cycle is not slack -- it is when the last weight row actually
 // arrives.
+//
+// -----------------------------------------------------------------------------
+// WEIGHT REUSE -- `skip_load`
+// -----------------------------------------------------------------------------
+// `skip_load` is sampled on the same cycle `start` is pulsed. When high, the
+// start transition goes straight to COMPUTE and the LOAD phase is bypassed
+// entirely for that run: the array keeps whatever weights are already sitting in
+// its PE registers from the previous run.
+//
+// Nothing else in the system needs a change for this. address_gen only advances
+// its weight counter while `phase == PH_LOAD` (`w_issue = (phase == PH_LOAD) &&
+// w_active_q`), so if that phase never occurs, no weight address is ever issued,
+// `weight_rd_en` stays low for the whole run, and weight_mem is never re-read.
+// The PEs, never seeing a new `wload` pulse, hold their existing weights. Reuse
+// is what NOT re-loading already means -- there is no "preserve my weights"
+// logic anywhere, and none should be added.
+//
+// `wload` likewise stays low for the entire skip run with no special case: it is
+// a registered copy of `(state_q == S_LOAD) && !addr_done`, and S_LOAD is never
+// entered. That falls out of the existing implementation rather than being
+// enforced by a new conditional.
+//
+//   CORRECTNESS CONTRACT WITH THE CALLER
+//   This module does NOT and CANNOT decide whether skipping is safe -- it trusts
+//   the caller completely. Asserting `skip_load` when the weights currently in
+//   the array are NOT the weights this run needs produces a silently WRONG
+//   result: the array computes with stale weights, every output looks perfectly
+//   plausible, and there is no error indication of any kind. The caller
+//   (testbench, or eventually a host/CPU) must only assert it when it KNOWS the
+//   resident weights match -- e.g. re-running the same channel's selector matrix
+//   immediately after the run that loaded it.
+//
+// `skip_load` matters only at the instant of `start`. Changing it mid-run has no
+// effect until the next `start`.
 // -----------------------------------------------------------------------------
 
 module control_unit #(
@@ -65,6 +106,12 @@ module control_unit #(
     input  logic       clk,
     input  logic       rst_n,             // active-low, synchronous
     input  logic       start,             // pulse: begin one full sequence
+
+    // Sampled on the same cycle as `start`. High = the array's resident weights
+    // are already correct for this run, so skip LOAD and go straight to COMPUTE.
+    // The caller owns this claim entirely -- see WEIGHT REUSE above.
+    input  logic       skip_load,
+
     input  logic       addr_done,         // from address_gen, current phase
     input  logic       array_last_valid,  // from the array's last column
 
@@ -109,7 +156,10 @@ module control_unit #(
     always_comb begin
         state_d = state_q;
         case (state_q)
-            S_IDLE:    if (start)          state_d = S_LOAD;
+            // The only functional change for weight reuse: the start transition
+            // bypasses S_LOAD when the caller asserts skip_load. Nothing else --
+            // no other state, no other output's generation logic -- differs.
+            S_IDLE:    if (start)          state_d = skip_load ? S_COMPUTE : S_LOAD;
 
             // N addresses issued; addr_done is visible on the extra cycle in
             // which the last weight row is actually delivered.
@@ -122,7 +172,13 @@ module control_unit #(
 
             S_DRAIN:   if (drain_complete) state_d = S_DONE;
 
-            S_DONE:    if (start)          state_d = S_LOAD;
+            // Same bypass here, and this is the case that actually matters:
+            // S_IDLE is only ever reached from reset, so a first-ever run has no
+            // resident weights to reuse. Every genuine reuse run is a `start`
+            // taken from S_DONE, parked there by the run that loaded the weights.
+            // Both start-accepting states also decode to phase = PH_IDLE, so
+            // "PH_IDLE -> PH_COMPUTE, no PH_LOAD" holds identically for either.
+            S_DONE:    if (start)          state_d = skip_load ? S_COMPUTE : S_LOAD;
 
             default:                       state_d = S_IDLE;
         endcase

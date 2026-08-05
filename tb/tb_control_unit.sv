@@ -69,6 +69,7 @@ module tb_control_unit;
     logic       clk;
     logic       rst_n;
     logic       start;
+    logic       skip_load;
     logic       addr_done;
     logic       array_last_valid;
     logic [1:0] phase;
@@ -79,6 +80,7 @@ module tb_control_unit;
         .clk              (clk),
         .rst_n            (rst_n),
         .start            (start),
+        .skip_load        (skip_load),
         .addr_done        (addr_done),
         .array_last_valid (array_last_valid),
         .phase            (phase),
@@ -202,6 +204,7 @@ module tb_control_unit;
         @(negedge clk);
         rst_n            = 1'b0;
         start            = 1'b0;
+        skip_load        = 1'b0;
         addr_done        = 1'b0;
         array_last_valid = 1'b0;
         repeat (2) @(negedge clk);
@@ -589,6 +592,13 @@ module tb_control_unit;
         start            = 1'b0;
         addr_done        = 1'b0;
         array_last_valid = 1'b0;
+
+        // Every test below is a skip_load = 0 test, and stays one: these are the
+        // pre-existing checks, and they must keep passing byte-for-byte to prove
+        // weight reuse changed nothing on the normal path. Weight-reuse coverage
+        // belongs in tests that raise this deliberately at a start edge.
+        skip_load        = 1'b0;
+
         ref_reset();
         cyc = 0;  wload_cycles = 0;
 

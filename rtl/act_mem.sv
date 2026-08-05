@@ -40,8 +40,8 @@
 module act_mem #(
     parameter int    N        = 4,    // elements per row (array lanes)
     parameter int    DW       = 8,    // bits per element
-    parameter int    DEPTH    = 16,   // rows storable (>= N)
-    parameter string ACT_INIT = ""    // optional $readmemh preload file
+    parameter int    DEPTH    = 16   // rows storable (>= N)
+    // parameter string ACT_INIT = ""    // optional $readmemh preload file
 ) (
     input  logic                     clk,
     input  logic                     rst_n,      // active-low, synchronous
@@ -68,11 +68,11 @@ module act_mem #(
 
     // ---------------------------------------------------------------- preload
     // One hex word per line, ROW_W bits wide, lane 0 in the low DW bits.
-`ifndef SYNTHESIS
-    initial begin
-        if (ACT_INIT != "") $readmemh(ACT_INIT, mem);
-    end
-`endif
+// `ifndef SYNTHESIS
+//     initial begin
+//         if (ACT_INIT != "") $readmemh(ACT_INIT, mem);
+//     end
+// `endif
 
     // ------------------------------------------------------------------ write
     always_ff @(posedge clk) begin

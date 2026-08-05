@@ -72,6 +72,7 @@ module accelerator_top #(
     // Run control
     input  logic               start,           // begin one full multiply
     output logic               done,            // held high until the next start
+    input logic                 skip_load,
 
     // Real inner (contraction) dimension for this run, 1..N. N means no padding.
     // Passed straight through to address_gen, which derives the two pad masks.
@@ -164,6 +165,15 @@ module accelerator_top #(
         .clk              (clk),
         .rst_n            (rst_n),
         .start            (start),
+
+        // Weight reuse is not exposed at this level yet: this top always loads
+        // weights on every run. Tied off explicitly rather than left
+        // unconnected, which would drive X into the start transition. To enable
+        // reuse, promote this to a top-level input alongside `start` -- and note
+        // that the caller then owns the correctness contract documented in
+        // control_unit.sv (stale weights produce silently wrong results).
+        .skip_load        (skip_load),
+
         .addr_done        (addr_done),         // <- address_gen
         .array_last_valid (array_last_valid),  // <- de-skewed last column
         .phase            (phase),             // -> address_gen

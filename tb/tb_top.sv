@@ -82,6 +82,7 @@ module tb_top;
         .clk            (clk),
         .rst_n          (rst_n),
         .start          (start),
+        .skip_load      (1'b0),
         .done           (done),
         .K_real         (K_real),
         .weight_wr_en   (weight_wr_en),
