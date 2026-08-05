@@ -11,8 +11,7 @@ transcript
 
 !image_to_hex.py
 !hex_to_image.py
-!uart_bridge.py
-!uart_minimal_test.py
+!uart_bridge_upd.py
 
 # generated demo artifacts -- regenerable, don't track
 act_stim.hex
